@@ -42,12 +42,34 @@ with st.sidebar:
     
     # Input for the "Recruiter"
     st.header("1. Recruiter Input")
-    job_role = st.selectbox("Select Target Role", ["Data Scientist", "Financial Analyst", "Marketing Manager", "Software Engineer"])
+    
+    # UPDATED: Added Standard MBA Roles
+    job_role = st.selectbox("Select Target Role", [
+        "Management Consultant",
+        "Product Manager",
+        "HR Business Partner",
+        "Financial Analyst",
+        "Marketing Manager",
+        "Operations Manager",
+        "Data Scientist", 
+        "Software Engineer"
+    ])
+    
     min_gpa = st.slider("Minimum GPA Requirement", 0.0, 10.0, 7.5)
     
     # The Job Description (This drives the matching)
     st.subheader("Job Description (JD)")
-    default_jd = "We are looking for a candidate with strong Python skills, knowledge of Machine Learning, and an understanding of financial modeling. Good communication is a plus."
+    
+    # Dynamic JD Text based on selection to make the demo smoother
+    if "Consultant" in job_role:
+        default_jd = "Looking for a strategic thinker with strong problem-solving skills. Must know Excel, Market Research, and Case Analysis. MBA preferred."
+    elif "HR" in job_role:
+        default_jd = "Seeking an HR professional with knowledge of Labor Laws, Talent Acquisition, Employee Engagement, and Soft Skills."
+    elif "Product" in job_role:
+        default_jd = "Requires strong User Research, Roadmap planning, Agile methodology, and Cross-functional leadership."
+    else:
+        default_jd = "We are looking for a candidate with strong Python skills, knowledge of Machine Learning, and an understanding of financial modeling. Good communication is a plus."
+        
     jd_text = st.text_area("Paste JD here:", value=default_jd, height=150)
     
     st.markdown("---")
@@ -57,12 +79,21 @@ with st.sidebar:
 # In a real startup, this would come from a SQL Database
 @st.cache_data
 def get_student_data():
+    # UPDATED: Expanded list to include MBA profiles
     students = [
+        # Tech & Finance Profiles
         {"ID": "CU23401", "Name": "Arjun Sharma", "GPA": 8.9, "Skills": ["Python", "Finance", "SQL", "Tableau"], "Bio": "Finance major with strong data analytics skills."},
-        {"ID": "CU23402", "Name": "Riya Patel", "GPA": 9.2, "Skills": ["Marketing", "SEO", "Content", "Strategy"], "Bio": "Creative strategist with internship experience at Ogilvy."},
         {"ID": "CU23403", "Name": "Kabir Singh", "GPA": 7.8, "Skills": ["Python", "Machine Learning", "Deep Learning", "NLP"], "Bio": "Hackathon winner, focused on AI research."},
         {"ID": "CU23404", "Name": "Sneha Gupta", "GPA": 8.5, "Skills": ["Finance", "Excel", "Accounting", "Auditing"], "Bio": "Cleared CFA Level 1, strong in core finance."},
-        {"ID": "CU23405", "Name": "Rohan Das", "GPA": 6.9, "Skills": ["Java", "SQL", "Backend", "System Design"], "Bio": "Backend developer, loves building scalable systems."}
+        {"ID": "CU23405", "Name": "Rohan Das", "GPA": 6.9, "Skills": ["Java", "SQL", "Backend", "System Design"], "Bio": "Backend developer, loves building scalable systems."},
+        
+        # MBA / Management Profiles
+        {"ID": "CU23402", "Name": "Riya Patel", "GPA": 9.2, "Skills": ["Marketing", "SEO", "Content Strategy", "Social Media"], "Bio": "Creative strategist with internship experience at Ogilvy."},
+        {"ID": "CU23406", "Name": "Vikram Malhotra", "GPA": 9.0, "Skills": ["Strategy", "Excel", "Case Analysis", "Market Research"], "Bio": "President of the Consulting Club, excellent problem solver."},
+        {"ID": "CU23407", "Name": "Ananya Iyer", "GPA": 8.2, "Skills": ["HR", "Talent Acquisition", "Employee Engagement", "Labor Laws"], "Bio": "People-person with a focus on organizational psychology."},
+        {"ID": "CU23408", "Name": "David Fernandez", "GPA": 7.5, "Skills": ["Operations", "Supply Chain", "Logistics", "Project Management"], "Bio": "Detail-oriented, Lean Six Sigma Green Belt."},
+        {"ID": "CU23409", "Name": "Priya Venkatesh", "GPA": 8.8, "Skills": ["Product Management", "User Research", "Agile", "Roadmap"], "Bio": "Aspiring PM, built two startup prototypes in college."},
+        {"ID": "CU23410", "Name": "Rahul Nair", "GPA": 8.1, "Skills": ["Sales", "B2B", "Negotiation", "CRM"], "Bio": "High energy, lead the university sponsorship team."}
     ]
     return pd.DataFrame(students)
 
@@ -91,7 +122,7 @@ if st.button("RUN AUTOMATED MATCHING PROTOCOL ⚡"):
     my_bar = st.progress(0, text=progress_text)
 
     for percent_complete in range(100):
-        time.sleep(0.02) # Artificial delay to make it look like "thinking"
+        time.sleep(0.01) # Made slightly faster for better demo feel
         if percent_complete == 20:
             my_bar.progress(percent_complete + 1, text="Parsing 1,250 Resumes...")
         if percent_complete == 50:
@@ -114,12 +145,13 @@ if st.button("RUN AUTOMATED MATCHING PROTOCOL ⚡"):
             score += 30
         
         # Keyword Matching (The "AI" part)
-        jd_keywords = jd_text.lower().split()
+        # We check if skills from the student bio/skills exist in the JD
+        jd_keywords = jd_text.lower()
         student_skills = [s.lower() for s in row["Skills"]]
         
         match_count = 0
         for skill in student_skills:
-            if skill in jd_text.lower():
+            if skill in jd_keywords: # Improved matching logic
                 match_count += 1
         
         # Add score based on matches
@@ -128,11 +160,18 @@ if st.button("RUN AUTOMATED MATCHING PROTOCOL ⚡"):
         # Cap score at 98% (Nobody is perfect!)
         final_score = min(98, score + random.randint(5, 15))
         
+        # Classification
+        status = "❌ Reject"
+        if final_score > 75:
+            status = "✅ Interview"
+        elif final_score > 50:
+            status = "⚠️ Waitlist"
+            
         results.append({
             "Student Name": row["Name"],
             "Match Score": f"{final_score}%",
             "Key Skills": ", ".join(row["Skills"]),
-            "AI Recommendation": "✅ Interview" if final_score > 75 else "❌ Reject"
+            "AI Recommendation": status
         })
     
     # 3. Display Results
@@ -161,4 +200,6 @@ else:
 
 # Footer
 st.markdown("---")
-st.markdown("*Built by PlaceBot Team | Powered by Gemini Pro & Streamlit*")
+st.markdown(
+    "© 2026 | Built by **[Kevin Joseph](https://www.linkedin.com/in/kevin-joseph-in/)** | "
+    "Powered by Gemini Pro & Streamlit")
